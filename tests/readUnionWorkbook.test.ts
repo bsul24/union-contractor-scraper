@@ -178,4 +178,29 @@ describe("readUnionWorkbook", () => {
       });
     }
   });
+
+  it("ignores completely blank rows", async () => {
+    const testWorkbook = await createTestWorkbook([
+      ["Arizona", 469, "https://ualocal469.org/", "PHOENIX AZ"],
+      [],
+      ["California", 447, "https://ualocal447.org/", "SACRAMENTO CA"],
+    ]);
+
+    try {
+      const result = await readUnionWorkbook(testWorkbook.filePath);
+
+      assert.equal(result.locals.length, 2);
+      assert.equal(result.issues.length, 0);
+
+      assert.deepEqual(
+        result.locals.map((local) => local.sourceRow),
+        [2, 4],
+      );
+    } finally {
+      await rm(testWorkbook.directory, {
+        recursive: true,
+        force: true,
+      });
+    }
+  });
 });
