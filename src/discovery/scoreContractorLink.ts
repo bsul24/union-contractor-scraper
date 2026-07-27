@@ -9,7 +9,7 @@ interface WeightedTerm {
 }
 
 const TEXT_TERMS: WeightedTerm[] = [
-  { term: "contractor directory", weight: 6 },
+  { term: "contractor directory", weight: 8 },
   { term: "contractor list", weight: 5 },
   { term: "find a contractor", weight: 6 },
   { term: "signatory employers", weight: 6 },
