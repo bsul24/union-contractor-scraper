@@ -3,3 +3,4 @@ dist/
 .vscode/
 data/output/
 data/input/*.xlsx
+storage/
