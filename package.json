@@ -8,7 +8,7 @@
     "dev": "tsx src/main.ts",
     "test:watch": "tsx --test --watch",
     "typecheck": "tsc --noEmit",
-    "inspect:homepage": "tsx src/inspectHomepage.ts"
+    "inspect:site": "tsx src/inspectUnionSite.ts"
   },
   "repository": {
     "type": "git",
