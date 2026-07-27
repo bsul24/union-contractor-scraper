@@ -1,5 +1,7 @@
 import { CheerioCrawler } from "crawlee";
 
+import { extractContractorLinks } from "./discovery/extractContractorLinks.js";
+
 const targetUrl = process.argv[2];
 
 if (!targetUrl) {
@@ -12,19 +14,31 @@ const crawler = new CheerioCrawler({
   maxRequestsPerCrawl: 1,
 
   async requestHandler({ $, request, log }) {
+    const pageUrl = request.loadedUrl ?? request.url;
     const title = $("title").first().text().trim();
 
-    const headings = $("h1")
-      .map((_, element) => $(element).text().trim())
-      .get()
-      .filter((heading) => heading !== "");
+    const candidates = extractContractorLinks($.html(), pageUrl);
 
-    log.info("Homepage fetched", {
+    log.info("Homepage inspected", {
       requestedUrl: request.url,
-      loadedUrl: request.loadedUrl,
+      loadedUrl: pageUrl,
       title,
-      headings,
+      contractorCandidateCount: candidates.length,
     });
+
+    if (candidates.length === 0) {
+      log.warning("No contractor-page candidates found.");
+      return;
+    }
+
+    console.table(
+      candidates.map((candidate) => ({
+        score: candidate.score,
+        text: candidate.text,
+        url: candidate.url,
+        sameOrigin: candidate.isSameOrigin,
+      })),
+    );
   },
 });
 
