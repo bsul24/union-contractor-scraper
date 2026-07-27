@@ -33,6 +33,7 @@ const temporaryDirectories: string[] = [];
 
 async function createTestWorkbook(
   rows: TestCellValue[][],
+  headers: string[] = HEADERS,
 ): Promise<TestWorkbook> {
   const directory = await mkdtemp(
     path.join(tmpdir(), "union-contractor-scraper-"),
@@ -45,7 +46,7 @@ async function createTestWorkbook(
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("UA Locals");
 
-  worksheet.addRow(HEADERS);
+  worksheet.addRow(headers);
 
   for (const row of rows) {
     worksheet.addRow(row);
@@ -182,5 +183,20 @@ describe("readUnionWorkbook", () => {
       result.locals.map((local) => local.sourceRow),
       [2, 4],
     );
+  });
+
+  it("rejects a worksheet with unexpected headers", async () => {
+    const incorrectHeaders = [...HEADERS];
+    incorrectHeaders[1] = "Union Number";
+
+    const testWorkbook = await createTestWorkbook(
+      [["Arizona", 469, "https://ualocal469.org/", "PHOENIX AZ"]],
+      incorrectHeaders,
+    );
+
+    await assert.rejects(readUnionWorkbook(testWorkbook.filePath), {
+      message:
+        'Unexpected header in column 2. Expected "Local" but found "Union Number".',
+    });
   });
 });

@@ -8,6 +8,21 @@ import type {
 
 const COLUMN_COUNT = 12;
 
+const EXPECTED_HEADERS = [
+  "State",
+  "Local",
+  "Website",
+  "Local Name",
+  "Address",
+  "City / State / ZIP",
+  "Phone",
+  "Official Website",
+  "Contractor Page",
+  "Review Status",
+  "Notes",
+  "UA Source",
+];
+
 function getCellText(row: ExcelJS.Row, columnNumber: number): string | null {
   const text = row.getCell(columnNumber).text.trim();
 
@@ -16,6 +31,33 @@ function getCellText(row: ExcelJS.Row, columnNumber: number): string | null {
   }
 
   return text;
+}
+
+function validateHeaders(worksheet: ExcelJS.Worksheet): void {
+  const headerRow = worksheet.getRow(1);
+
+  for (
+    let columnNumber = 1;
+    columnNumber <= EXPECTED_HEADERS.length;
+    columnNumber += 1
+  ) {
+    const expectedHeader = EXPECTED_HEADERS[columnNumber - 1];
+
+    if (expectedHeader === undefined) {
+      throw new Error(
+        `No expected header is configured for column ${columnNumber}.`,
+      );
+    }
+
+    const actualHeader = headerRow.getCell(columnNumber).text.trim();
+
+    if (actualHeader !== expectedHeader) {
+      throw new Error(
+        `Unexpected header in column ${columnNumber}. ` +
+          `Expected "${expectedHeader}" but found "${actualHeader}".`,
+      );
+    }
+  }
 }
 
 function normalizeUrl(value: string | null): string | null {
@@ -82,6 +124,8 @@ export async function readUnionWorkbook(
   if (!worksheet) {
     throw new Error('Could not find a worksheet named "UA Locals".');
   }
+
+  validateHeaders(worksheet);
 
   const locals: UnionLocal[] = [];
   const issues: ImportIssue[] = [];
