@@ -1,15 +1,18 @@
 import { CheerioCrawler } from "crawlee";
 
 import { extractContractorLinks } from "./discovery/extractContractorLinks.js";
+import { extractContractorsFromTable } from "./extractors/extractContractorsFromTable.js";
 
 const HOMEPAGE_LABEL = "HOMEPAGE";
 const CONTRACTOR_PAGE_LABEL = "CONTRACTOR_PAGE";
 
 const targetUrl = process.argv[2];
+const localNumber = process.argv[3] ?? "UNKNOWN";
+const localName = process.argv[4] ?? "UNKNOWN";
 
 if (!targetUrl) {
   throw new Error(
-    "Please provide a URL. Example: npm run inspect:site -- https://ualocal447.org/",
+    'Please provide a URL. Example: npm run inspect:site -- https://ualocal447.org/ 447 "SACRAMENTO CA"',
   );
 }
 
@@ -90,6 +93,12 @@ const crawler = new CheerioCrawler({
         .get()
         .filter((heading) => heading !== "");
 
+      const contractors = extractContractorsFromTable($.html(), {
+        localNumber,
+        localName,
+        sourceUrl: pageUrl,
+      });
+
       log.info("Contractor page inspected", {
         requestedUrl: request.url,
         loadedUrl: pageUrl,
@@ -100,6 +109,7 @@ const crawler = new CheerioCrawler({
         mailtoLinkCount: $('a[href^="mailto:"]').length,
         telephoneLinkCount: $('a[href^="tel:"]').length,
         addressElementCount: $("address").length,
+        tableContractorCount: contractors.length,
       });
 
       console.log("Page headings:");
@@ -108,6 +118,27 @@ const crawler = new CheerioCrawler({
         headings.slice(0, 20).map((heading, index) => ({
           position: index + 1,
           heading,
+        })),
+      );
+
+      if (contractors.length === 0) {
+        log.warning("The generic table extractor found no contractor records.");
+
+        return;
+      }
+
+      console.log("Sample table-extracted contractors:");
+
+      console.table(
+        contractors.slice(0, 10).map((contractor) => ({
+          name: contractor.name,
+          contact: contractor.contactName,
+          email: contractor.email,
+          phone: contractor.phone,
+          website: contractor.website,
+          address: contractor.address,
+          location: contractor.cityStateZip,
+          category: contractor.category,
         })),
       );
 
