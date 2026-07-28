@@ -1,8 +1,7 @@
 import { CheerioCrawler } from "crawlee";
 
 import { extractContractorLinks } from "./discovery/extractContractorLinks.js";
-import { extractContractorsFromLabeledTable } from "./extractors/extractContractorsFromLabeledTable.js";
-import { extractContractorsFromTable } from "./extractors/extractContractorsFromTable.js";
+import { extractContractors } from "./extractors/extractContractors.js";
 
 const HOMEPAGE_LABEL = "HOMEPAGE";
 const CONTRACTOR_PAGE_LABEL = "CONTRACTOR_PAGE";
@@ -94,21 +93,11 @@ const crawler = new CheerioCrawler({
         .get()
         .filter((heading) => heading !== "");
 
-      const extractionContext = {
+      const extractionResult = extractContractors($.html(), {
         localNumber,
         localName,
         sourceUrl: pageUrl,
-      };
-
-      const tableContractors = extractContractorsFromTable(
-        $.html(),
-        extractionContext,
-      );
-
-      const labeledTableContractors = extractContractorsFromLabeledTable(
-        $.html(),
-        extractionContext,
-      );
+      });
 
       log.info("Contractor page inspected", {
         requestedUrl: request.url,
@@ -120,8 +109,8 @@ const crawler = new CheerioCrawler({
         mailtoLinkCount: $('a[href^="mailto:"]').length,
         telephoneLinkCount: $('a[href^="tel:"]').length,
         addressElementCount: $("address").length,
-        tableContractorCount: tableContractors.length,
-        labeledTableContractorCount: labeledTableContractors.length,
+        extractionStrategy: extractionResult.strategy,
+        contractorCount: extractionResult.contractors.length,
       });
 
       console.log("Page headings:");
@@ -133,33 +122,23 @@ const crawler = new CheerioCrawler({
         })),
       );
 
-      const contractors =
-        tableContractors.length > 0
-          ? tableContractors
-          : labeledTableContractors;
-
-      const extractionStrategy =
-        tableContractors.length > 0
-          ? "header table"
-          : labeledTableContractors.length > 0
-            ? "labeled table"
-            : null;
-
-      if (extractionStrategy === null) {
-        log.warning("No table extraction strategy found contractor records.");
+      if (extractionResult.strategy === "none") {
+        log.warning("No extraction strategy found contractor records.");
 
         return;
       }
 
       log.info("Contractors extracted", {
-        strategy: extractionStrategy,
-        contractorCount: contractors.length,
+        strategy: extractionResult.strategy,
+        contractorCount: extractionResult.contractors.length,
       });
 
-      console.log(`Sample contractors extracted using ${extractionStrategy}:`);
+      console.log(
+        `Sample contractors extracted using ${extractionResult.strategy}:`,
+      );
 
       console.table(
-        contractors.slice(0, 10).map((contractor) => ({
+        extractionResult.contractors.slice(0, 10).map((contractor) => ({
           name: contractor.name,
           contact: contractor.contactName,
           email: contractor.email,
