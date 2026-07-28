@@ -1,4 +1,5 @@
 import { extractContractorsFromLabeledTable } from "./extractContractorsFromLabeledTable.js";
+import { extractContractorsFromList } from "./extractContractorsFromList.js";
 import { extractContractorsFromTable } from "./extractContractorsFromTable.js";
 
 import type {
@@ -9,6 +10,7 @@ import type {
 export type ContractorExtractionStrategy =
   | "header_table"
   | "labeled_table"
+  | "section_list"
   | "none";
 
 export interface ContractorExtractionResult {
@@ -38,6 +40,15 @@ export function extractContractors(
     return {
       strategy: "labeled_table",
       contractors: labeledTableContractors,
+    };
+  }
+
+  const listContractors = extractContractorsFromList(html, context);
+
+  if (listContractors.length > 0) {
+    return {
+      strategy: "section_list",
+      contractors: listContractors,
     };
   }
 

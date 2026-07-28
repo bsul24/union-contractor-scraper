@@ -117,4 +117,70 @@ describe("extractContractors", () => {
       contractors: [],
     });
   });
+
+  it("falls back to the section-list strategy", () => {
+    const html = `
+    <main>
+      <h2>All Signatory Contractors</h2>
+
+      <ul>
+        <li>
+          <a href="https://example-mechanical.com/">
+            Example Mechanical
+          </a>
+        </li>
+        <li>Second Mechanical</li>
+      </ul>
+    </main>
+  `;
+
+    const result = extractContractors(html, CONTEXT);
+
+    assert.equal(result.strategy, "section_list");
+
+    assert.deepEqual(
+      result.contractors.map((contractor) => ({
+        name: contractor.name,
+        website: contractor.website,
+      })),
+      [
+        {
+          name: "Example Mechanical",
+          website: "https://example-mechanical.com/",
+        },
+        {
+          name: "Second Mechanical",
+          website: null,
+        },
+      ],
+    );
+  });
+
+  it("prefers the labeled-table strategy over section lists", () => {
+    const html = `
+    <table>
+      <tr>
+        <td colspan="2">Labeled Table Company</td>
+      </tr>
+      <tr>
+        <td>Phone:</td>
+        <td>916-555-1000</td>
+      </tr>
+    </table>
+
+    <h2>All Signatory Contractors</h2>
+    <ul>
+      <li>List Company</li>
+    </ul>
+  `;
+
+    const result = extractContractors(html, CONTEXT);
+
+    assert.equal(result.strategy, "labeled_table");
+
+    assert.deepEqual(
+      result.contractors.map((contractor) => contractor.name),
+      ["Labeled Table Company"],
+    );
+  });
 });
