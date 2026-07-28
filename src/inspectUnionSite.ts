@@ -1,6 +1,7 @@
 import { CheerioCrawler } from "crawlee";
 
 import { extractContractorLinks } from "./discovery/extractContractorLinks.js";
+import { extractContractorsFromLabeledTable } from "./extractors/extractContractorsFromLabeledTable.js";
 import { extractContractorsFromTable } from "./extractors/extractContractorsFromTable.js";
 
 const HOMEPAGE_LABEL = "HOMEPAGE";
@@ -93,11 +94,21 @@ const crawler = new CheerioCrawler({
         .get()
         .filter((heading) => heading !== "");
 
-      const contractors = extractContractorsFromTable($.html(), {
+      const extractionContext = {
         localNumber,
         localName,
         sourceUrl: pageUrl,
-      });
+      };
+
+      const tableContractors = extractContractorsFromTable(
+        $.html(),
+        extractionContext,
+      );
+
+      const labeledTableContractors = extractContractorsFromLabeledTable(
+        $.html(),
+        extractionContext,
+      );
 
       log.info("Contractor page inspected", {
         requestedUrl: request.url,
@@ -109,7 +120,8 @@ const crawler = new CheerioCrawler({
         mailtoLinkCount: $('a[href^="mailto:"]').length,
         telephoneLinkCount: $('a[href^="tel:"]').length,
         addressElementCount: $("address").length,
-        tableContractorCount: contractors.length,
+        tableContractorCount: tableContractors.length,
+        labeledTableContractorCount: labeledTableContractors.length,
       });
 
       console.log("Page headings:");
@@ -121,13 +133,30 @@ const crawler = new CheerioCrawler({
         })),
       );
 
-      if (contractors.length === 0) {
-        log.warning("The generic table extractor found no contractor records.");
+      const contractors =
+        tableContractors.length > 0
+          ? tableContractors
+          : labeledTableContractors;
+
+      const extractionStrategy =
+        tableContractors.length > 0
+          ? "header table"
+          : labeledTableContractors.length > 0
+            ? "labeled table"
+            : null;
+
+      if (extractionStrategy === null) {
+        log.warning("No table extraction strategy found contractor records.");
 
         return;
       }
 
-      console.log("Sample table-extracted contractors:");
+      log.info("Contractors extracted", {
+        strategy: extractionStrategy,
+        contractorCount: contractors.length,
+      });
+
+      console.log(`Sample contractors extracted using ${extractionStrategy}:`);
 
       console.table(
         contractors.slice(0, 10).map((contractor) => ({
