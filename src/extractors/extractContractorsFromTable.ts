@@ -104,6 +104,39 @@ function extractWebsite(
   }
 }
 
+function extractAddressLines(
+  cellSelection: ReturnType<ReturnType<typeof load>>,
+): {
+  address: string | null;
+  cityStateZip: string | null;
+} {
+  const addressCell = cellSelection.clone();
+
+  addressCell.find("br").replaceWith("\n");
+
+  const addressLines = addressCell
+    .text()
+    .split(/\n+/)
+    .map((line) => normalizeText(line))
+    .filter((line): line is string => line !== null);
+
+  if (addressLines.length <= 1) {
+    return {
+      address: addressLines[0] ?? null,
+      cityStateZip: null,
+    };
+  }
+
+  const cityStateZip = addressLines.at(-1) ?? null;
+
+  const address = normalizeText(addressLines.slice(0, -1).join(" "));
+
+  return {
+    address,
+    cityStateZip,
+  };
+}
+
 export function extractContractorsFromTable(
   html: string,
   context: ContractorExtractionContext,
@@ -193,6 +226,21 @@ export function extractContractorsFromTable(
           const href = cellSelection.find("a[href]").first().attr("href");
 
           values.website = extractWebsite(href, visibleText, context.sourceUrl);
+
+          continue;
+        }
+
+        if (field === "address") {
+          const extractedAddress = extractAddressLines(cellSelection);
+
+          values.address = extractedAddress.address;
+
+          if (
+            values.cityStateZip === undefined ||
+            values.cityStateZip === null
+          ) {
+            values.cityStateZip = extractedAddress.cityStateZip;
+          }
 
           continue;
         }

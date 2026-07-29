@@ -208,4 +208,35 @@ describe("extractContractorsFromTable", () => {
 
     assert.deepEqual(contractors, []);
   });
+
+  it("separates multiline address cells into address and location", () => {
+    const html = `
+    <table>
+      <tr>
+        <th>Contractor</th>
+        <th>Phone</th>
+        <th>Address</th>
+      </tr>
+      <tr>
+        <td>Example Mechanical</td>
+        <td>907-555-1234</td>
+        <td>
+          500 West Potter Drive
+          <br />
+          Suite 100
+          <br />
+          Anchorage, AK 99518
+        </td>
+      </tr>
+    </table>
+  `;
+
+    const contractors = extractContractorsFromTable(html, CONTEXT);
+
+    assert.equal(contractors.length, 1);
+
+    assert.equal(contractors[0]?.address, "500 West Potter Drive Suite 100");
+
+    assert.equal(contractors[0]?.cityStateZip, "Anchorage, AK 99518");
+  });
 });
