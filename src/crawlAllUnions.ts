@@ -1,37 +1,22 @@
 import { crawlUnionLocal } from "./crawl/crawlUnionLocal.js";
 import { crawlUnionLocals } from "./crawl/crawlUnionLocals.js";
 import { createCheerioPageLoader } from "./crawl/createCheerioPageLoader.js";
+import { selectUnionBatch } from "./crawl/selectUnionBatch.js";
 import { readUnionWorkbook } from "./input/readUnionWorkbook.js";
 import { writeCrawlResultsWorkbook } from "./output/writeCrawlResultsWorkbook.js";
 
 const workbookPath = "data/input/ua-locals.xlsx";
 
-const outputPath = "data/output/union-contractor-results.xlsx";
-
-function parseLimit(value: string | undefined): number | null {
-  if (value === undefined) {
-    return null;
-  }
-
-  const parsedValue = Number(value);
-
-  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
-    throw new Error(
-      `The crawl limit must be a positive integer. Received: ${value}`,
-    );
-  }
-
-  return parsedValue;
-}
-
-const limit = parseLimit(process.argv[2]);
+const firstBatchArgument = process.argv[2];
+const secondBatchArgument = process.argv[3];
 
 const workbookImport = await readUnionWorkbook(workbookPath);
 
-const selectedLocals =
-  limit === null
-    ? workbookImport.locals
-    : workbookImport.locals.slice(0, limit);
+const batchSelection = selectUnionBatch(
+  workbookImport.locals,
+  firstBatchArgument,
+  secondBatchArgument,
+);
 
 console.log("Workbook imported:");
 
@@ -40,7 +25,10 @@ console.table([
     sheetName: workbookImport.sheetName,
     validLocalCount: workbookImport.locals.length,
     importIssueCount: workbookImport.issues.length,
-    selectedLocalCount: selectedLocals.length,
+    selectedLocalCount: batchSelection.locals.length,
+    startPosition: batchSelection.startPosition,
+    endPosition: batchSelection.endPosition,
+    outputPath: batchSelection.outputPath,
   },
 ]);
 
@@ -63,7 +51,7 @@ const loadPage = createCheerioPageLoader({
 });
 
 const results = await crawlUnionLocals(
-  selectedLocals,
+  batchSelection.locals,
 
   (local) => crawlUnionLocal(local, loadPage),
 
@@ -84,7 +72,7 @@ const results = await crawlUnionLocals(
   },
 );
 
-await writeCrawlResultsWorkbook(results, outputPath);
+await writeCrawlResultsWorkbook(results, batchSelection.outputPath);
 
 const successfulCount = results.filter(
   (result) => result.status === "success",
@@ -117,6 +105,6 @@ console.table([
     skippedCount,
     failedCount,
     contractorCount,
-    outputPath,
+    outputPath: batchSelection.outputPath,
   },
 ]);
