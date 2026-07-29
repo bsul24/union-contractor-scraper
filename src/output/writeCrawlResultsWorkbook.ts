@@ -4,6 +4,7 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 
 import type { UnionCrawlResult } from "../types/crawl.js";
+import type { ImportIssue } from "../types/union.js";
 
 const CONTRACTOR_HEADERS = [
   "Source Row",
@@ -35,11 +36,20 @@ const CRAWL_RESULT_HEADERS = [
   "Message",
 ];
 
+const IMPORT_ISSUE_HEADERS = [
+  "Source Row",
+  "Issue Code",
+  "Message",
+  "Raw Website",
+];
+
 const CONTRACTOR_COLUMN_WIDTHS = [
   12, 14, 24, 38, 24, 32, 18, 38, 36, 28, 30, 42, 22,
 ];
 
 const CRAWL_RESULT_COLUMN_WIDTHS = [12, 14, 24, 14, 20, 42, 42, 22, 18, 30, 60];
+
+const IMPORT_ISSUE_COLUMN_WIDTHS = [12, 30, 60, 42];
 
 function formatWorksheet(
   worksheet: ExcelJS.Worksheet,
@@ -112,6 +122,7 @@ function formatWorksheet(
 export async function writeCrawlResultsWorkbook(
   results: UnionCrawlResult[],
   outputPath: string,
+  importIssues: ImportIssue[] = [],
 ): Promise<void> {
   await mkdir(path.dirname(outputPath), {
     recursive: true,
@@ -125,6 +136,8 @@ export async function writeCrawlResultsWorkbook(
   const contractorsWorksheet = workbook.addWorksheet("Contractors");
 
   const crawlResultsWorksheet = workbook.addWorksheet("Crawl Results");
+
+  const importIssuesWorksheet = workbook.addWorksheet("Import Issues");
 
   contractorsWorksheet.addRow(CONTRACTOR_HEADERS);
 
@@ -166,9 +179,22 @@ export async function writeCrawlResultsWorkbook(
     ]);
   }
 
+  importIssuesWorksheet.addRow(IMPORT_ISSUE_HEADERS);
+
+  for (const issue of importIssues) {
+    importIssuesWorksheet.addRow([
+      issue.sourceRow,
+      issue.code,
+      issue.message,
+      issue.rawWebsite,
+    ]);
+  }
+
   formatWorksheet(contractorsWorksheet, CONTRACTOR_COLUMN_WIDTHS);
 
   formatWorksheet(crawlResultsWorksheet, CRAWL_RESULT_COLUMN_WIDTHS);
+
+  formatWorksheet(importIssuesWorksheet, IMPORT_ISSUE_COLUMN_WIDTHS);
 
   await workbook.xlsx.writeFile(outputPath);
 }

@@ -72,7 +72,11 @@ const results = await crawlUnionLocals(
   },
 );
 
-await writeCrawlResultsWorkbook(results, batchSelection.outputPath);
+await writeCrawlResultsWorkbook(
+  results,
+  batchSelection.outputPath,
+  workbookImport.issues,
+);
 
 const successfulCount = results.filter(
   (result) => result.status === "success",

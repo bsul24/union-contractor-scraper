@@ -10,6 +10,7 @@ import { writeCrawlResultsWorkbook } from "../src/output/writeCrawlResultsWorkbo
 
 import type { ContractorRecord } from "../src/types/contractor.js";
 import type { UnionCrawlResult } from "../src/types/crawl.js";
+import type { ImportIssue } from "../src/types/union.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -134,6 +135,13 @@ const FAILED_RESULT: UnionCrawlResult = {
   message: "Request timed out.",
 };
 
+const IMPORT_ISSUE: ImportIssue = {
+  sourceRow: 269,
+  code: "MISSING_LOCAL_IDENTITY",
+  message: "The row is missing a local number or local name.",
+  rawWebsite: "https://www.ualocal853training.com/",
+};
+
 describe("writeCrawlResultsWorkbook", () => {
   it("creates contractor and crawl-result worksheets", async () => {
     const outputPath = await createOutputPath();
@@ -146,7 +154,7 @@ describe("writeCrawlResultsWorkbook", () => {
 
     assert.deepEqual(
       workbook.worksheets.map((worksheet) => worksheet.name),
-      ["Contractors", "Crawl Results"],
+      ["Contractors", "Crawl Results", "Import Issues"],
     );
   });
 
@@ -318,5 +326,62 @@ describe("writeCrawlResultsWorkbook", () => {
     assert.ok(workbook.getWorksheet("Contractors"));
 
     assert.ok(workbook.getWorksheet("Crawl Results"));
+
+    assert.ok(workbook.getWorksheet("Import Issues"));
+  });
+
+  it("writes workbook import issues", async () => {
+    const outputPath = await createOutputPath();
+
+    await writeCrawlResultsWorkbook([SUCCESS_RESULT], outputPath, [
+      IMPORT_ISSUE,
+    ]);
+
+    const workbook = new ExcelJS.Workbook();
+
+    await workbook.xlsx.readFile(outputPath);
+
+    const worksheet = workbook.getWorksheet("Import Issues");
+
+    assert.ok(worksheet);
+
+    assert.deepEqual(getRowValues(worksheet, 1, 4), [
+      "Source Row",
+      "Issue Code",
+      "Message",
+      "Raw Website",
+    ]);
+
+    assert.deepEqual(getRowValues(worksheet, 2, 4), [
+      269,
+      "MISSING_LOCAL_IDENTITY",
+      "The row is missing a local number or local name.",
+      "https://www.ualocal853training.com/",
+    ]);
+
+    assert.equal(worksheet.rowCount, 2);
+  });
+
+  it("creates an import-issues sheet when there are no issues", async () => {
+    const outputPath = await createOutputPath();
+
+    await writeCrawlResultsWorkbook([SUCCESS_RESULT], outputPath);
+
+    const workbook = new ExcelJS.Workbook();
+
+    await workbook.xlsx.readFile(outputPath);
+
+    const worksheet = workbook.getWorksheet("Import Issues");
+
+    assert.ok(worksheet);
+
+    assert.deepEqual(getRowValues(worksheet, 1, 4), [
+      "Source Row",
+      "Issue Code",
+      "Message",
+      "Raw Website",
+    ]);
+
+    assert.equal(worksheet.rowCount, 1);
   });
 });
