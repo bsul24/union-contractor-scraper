@@ -9,7 +9,8 @@
     "test:watch": "tsx --test --watch",
     "typecheck": "tsc --noEmit",
     "inspect:site": "tsx src/inspectUnionSite.ts",
-    "crawl:local": "tsx src/crawlSingleUnion.ts"
+    "crawl:local": "tsx src/crawlSingleUnion.ts",
+    "crawl:all": "tsx src/crawlAllUnions.ts"
   },
   "repository": {
     "type": "git",
