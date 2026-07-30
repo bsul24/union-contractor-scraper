@@ -183,4 +183,59 @@ describe("extractContractors", () => {
       ["Labeled Table Company"],
     );
   });
+
+  it("falls back to the contractor-card strategy", () => {
+    const html = `
+    <main>
+      <h2>Signatory Contractors</h2>
+
+      <div class="contractor-grid">
+        <div class="contractor-card">
+          <a href="https://example.com/">
+            Example Mechanical
+          </a>
+        </div>
+
+        <div class="contractor-card">
+          <span>
+            Second Mechanical
+          </span>
+        </div>
+      </div>
+    </main>
+  `;
+
+    const result = extractContractors(html, CONTEXT);
+
+    assert.equal(result.strategy, "card_grid");
+
+    assert.deepEqual(
+      result.contractors.map((contractor) => contractor.name),
+      ["Example Mechanical", "Second Mechanical"],
+    );
+  });
+
+  it("prefers the section-list strategy over contractor cards", () => {
+    const html = `
+    <main>
+      <h2>Signatory Contractors</h2>
+
+      <ul class="contractor-cards">
+        <li class="contractor-card">
+          <a href="https://example.com/">
+            Example Mechanical
+          </a>
+        </li>
+
+        <li class="contractor-card">
+          Second Mechanical
+        </li>
+      </ul>
+    </main>
+  `;
+
+    const result = extractContractors(html, CONTEXT);
+
+    assert.equal(result.strategy, "section_list");
+  });
 });
